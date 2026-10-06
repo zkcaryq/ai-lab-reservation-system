@@ -1,6 +1,7 @@
-"""终端与轮转文件日志，并对已配置的数据库密码做基础脱敏。"""
+"""终端与轮转文件日志，并对配置中的已知密钥做基础脱敏。"""
 
 import logging
+import os
 import sys
 import traceback
 from datetime import UTC, datetime
@@ -9,13 +10,18 @@ from logging.handlers import RotatingFileHandler
 from app.core.request_id import current_request_id
 from app.core.settings import PROJECT_ROOT, get_settings
 
-LOG_FILE = PROJECT_ROOT / "logs" / "app.log"
+# 每个进程在导入本模块时确定一次启动时间。开发热重载会启动新进程，
+# 因而也会得到新的日志文件；PID 用于避免同一秒启动多个进程时文件名冲突。
+PROCESS_START_TIME = datetime.now(UTC)
+LOG_DIRECTORY = PROJECT_ROOT / "logs" / PROCESS_START_TIME.strftime("%Y-%m-%d")
+LOG_FILE_NAME = f"app-{PROCESS_START_TIME.strftime('%H-%M-%S')}Z-pid-{os.getpid()}.log"
+LOG_FILE = LOG_DIRECTORY / LOG_FILE_NAME
 LOG_MAX_BYTES = 5 * 1024 * 1024
 LOG_BACKUP_COUNT = 5
 
 
 class SafeFormatter(logging.Formatter):
-    """输出可检索文本日志，并替换配置中已知的数据库密码。"""
+    """输出可检索文本日志，并替换配置中已知的数据库密码和JWT密钥。"""
 
     def __init__(self, secrets: tuple[str, ...]) -> None:
         super().__init__()
@@ -49,7 +55,7 @@ class SafeFormatter(logging.Formatter):
 
 
 def configure_logging() -> None:
-    """把应用日志同时写到终端和项目根目录的 logs/app.log。"""
+    """把日志写到终端和本次进程独立的按日期归档文件。"""
 
     settings = get_settings()
     migration_password = (
@@ -57,7 +63,15 @@ def configure_logging() -> None:
         if settings.MIGRATION_DB_PASSWORD is not None
         else ""
     )
-    formatter = SafeFormatter((settings.DB_PASSWORD.get_secret_value(), migration_password))
+    # 把运行账号密码、可选迁移账号密码和JWT密钥统一交给Formatter脱敏。
+    # 这是日志系统的兜底保护；业务代码仍然不应该主动记录这些敏感值。
+    formatter = SafeFormatter(
+        (
+            settings.DB_PASSWORD.get_secret_value(),
+            migration_password,
+            settings.JWT_SECRET_KEY.get_secret_value(),
+        )
+    )
 
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     console_handler = logging.StreamHandler(sys.stderr)
@@ -83,3 +97,5 @@ def configure_logging() -> None:
         uvicorn_logger = logging.getLogger(name)
         uvicorn_logger.handlers.clear()
         uvicorn_logger.propagate = True
+
+    root_logger.info("logging configured file=%s", LOG_FILE)

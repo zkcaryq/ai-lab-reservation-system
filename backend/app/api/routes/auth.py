@@ -7,6 +7,7 @@
 from fastapi import APIRouter
 
 from app.api.dependencies import DbSession
+from app.core.security import create_access_token
 from app.schemas.auth import LoginRequest
 from app.schemas.user import UserResponse
 from app.services.auth import auth_login
@@ -44,6 +45,12 @@ async def login(data: LoginRequest, session: DbSession):
             "code": 400,
             "message": "账号或密码错误",
         }
+    if user.status != 1:
+        return {
+            "code": 403,
+            "message": "账号已被禁用",
+        }
+    token = create_access_token(user.id)
 
     # 此时user是SQLAlchemy的User ORM对象。
     # UserResponse配置了from_attributes=True，因此可以从user.id、user.username
@@ -51,5 +58,8 @@ async def login(data: LoginRequest, session: DbSession):
     return {
         "code": 200,
         "message": "登录成功",
-        "data": UserResponse.model_validate(user),
+        "data": {
+            "token": token,
+            "user": UserResponse.model_validate(user),
+        },
     }

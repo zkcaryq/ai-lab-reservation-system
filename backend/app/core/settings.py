@@ -54,6 +54,29 @@ class Settings(BaseSettings):
     MAX_REQUEST_BODY_BYTES: int = Field(default=1_048_576, ge=1_024, le=33_554_432)
     SHUTDOWN_TIMEOUT: float = Field(default=10, gt=0, le=60)
 
+    # JWT签名密钥属于敏感配置，因此使用SecretStr，避免它在普通日志和报错中被直接显示。
+    # 真实值只应写在本地.env或部署平台的Secret中，不能提交到Git。
+    JWT_SECRET_KEY: SecretStr
+
+    # 当前项目只允许服务端明确选择HS256，不能让客户端Token自行决定验签算法。
+    JWT_ALGORITHM: Literal["HS256"] = "HS256"
+
+    # Access Token默认48小时过期；gt和le同时限制配置必须大于0且最长不超过30天。
+    JWT_EXPIRE_HOURS: int = Field(default=48, gt=0, le=24 * 30)
+
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
+    def sufficiently_long_jwt_secret(cls, value: SecretStr) -> SecretStr:
+        """拒绝过短的JWT签名密钥。"""
+
+        # SecretStr不会通过str(value)返回原文，校验长度时必须显式读取真实值。
+        # 这里检查的是字符数，不等于完整的密码学强度；密钥仍应由安全随机数生成器生成。
+        if len(value.get_secret_value()) < 32:
+            raise ValueError("JWT_SECRET_KEY 至少需要 32 个字符")
+
+        # Pydantic字段校验器必须返回通过校验的值，才能继续创建Settings对象。
+        return value
+
     @field_validator("DB_PASSWORD")
     @classmethod
     def nonempty_password(cls, value: SecretStr) -> SecretStr:

@@ -27,10 +27,10 @@ class User(Base):
         comment="账号",
     )
 
-    # 本章严格跟随原教程，暂时保存和比较 password。
-    # 密码哈希属于后续安全内容，本章不提前实现。
+    # 这里保存的是完整的Argon2id哈希字符串，不是用户输入的明文密码。
+    # 长度扩大到255，是为了容纳算法、版本、参数、salt和哈希摘要等编码信息。
     password: Mapped[str] = mapped_column(
-        String(50),
+        String(255),
         nullable=False,
         comment="密码",
     )

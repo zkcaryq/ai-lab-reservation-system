@@ -33,7 +33,7 @@ RequestIdMiddleware
 
 - request_id 标识整次请求，并写入 `X-Request-ID`。
 - error_id 标识一次未知异常，客户端可用它查询服务端日志。
-- 未知异常完整 traceback 同时写入终端和 `logs/app.log`。
+- 未知异常完整 traceback 同时写入终端和本次进程的独立日志文件。
 - 请求体超过配置上限时直接返回 413。
 
 ## lifespan

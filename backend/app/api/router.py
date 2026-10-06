@@ -9,6 +9,7 @@
 from fastapi import APIRouter
 
 from app.api.routes.auth import router as auth_router
+from app.api.routes.users import router as users_router
 
 # 当前模板把 API 版本号统一放在汇总路由上。
 # 子路由只关心自己的业务前缀，避免每个模块都重复写 /api。
@@ -19,3 +20,4 @@ api_router = APIRouter(prefix="/api")
 
 # auth_router 自带 /auth，因此最终路径为 /api/auth/login。
 api_router.include_router(auth_router)
+api_router.include_router(users_router)

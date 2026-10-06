@@ -34,13 +34,31 @@ Invoke-RestMethod http://127.0.0.1:8000/health/ready
 
 ## 查看日志
 
-```powershell
-Get-Content .\logs\app.log -Tail 100
-Select-String -Path .\logs\app.log -Pattern "error_id"
-Select-String -Path .\logs\app.log -Pattern "request_id"
+日志同时输出到终端和按启动时间创建的独立文件，日期和时间使用 UTC：
+
+```text
+logs/2026-10-06/app-13-45-20Z-pid-12345.log
 ```
 
-日志同时输出到终端和 `logs/app.log`。文件达到 5 MiB 后轮转，保留 5 份历史文件。
+每个进程启动时创建新文件；`--reload`重新启动工作进程时也会创建新文件。查看最新文件：
+
+```powershell
+$latestLog = Get-ChildItem .\logs -Recurse -File -Filter "app-*.log" |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+Get-Content -LiteralPath $latestLog.FullName -Tail 100
+Select-String -LiteralPath $latestLog.FullName -Pattern "error_id"
+Select-String -LiteralPath $latestLog.FullName -Pattern "request_id"
+```
+
+跨全部历史文件查找：
+
+```powershell
+Select-String -Path .\logs\*\app-*.log* -Pattern "error_id"
+```
+
+单个启动日志达到 5 MiB 后轮转，最多保留 5 份该文件的历史分片。按启动分文件会持续占用
+磁盘，应用不会自动删除历史记录；生产环境应由运维平台配置保留周期。
 
 ## 静态检查
 
