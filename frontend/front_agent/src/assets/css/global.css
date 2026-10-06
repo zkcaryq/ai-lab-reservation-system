@@ -1,0 +1,83 @@
+/* 全局样式：只放"真正全站"的规则（重置 + 设计变量）；组件自己的样式写在各自 .vue 的 <style scoped> 里 */
+
+/* 设计变量：全站颜色、阴影、圆角、过渡统一定义，组件中通过 var() 引用 */
+:root {
+  --layout-header-height: 60px;
+  --layout-aside-width: 220px;
+
+  --color-aside-bg: #001529;
+  --color-aside-bg-hover: rgba(255, 255, 255, 0.08);
+  --color-aside-text: #a6adb4;
+  --color-aside-text-active: #ffffff;
+
+  --color-accent: #409eff;
+  --gradient-accent: linear-gradient(135deg, #409eff, #79bbff);
+  --gradient-accent-soft: linear-gradient(
+    90deg,
+    rgba(64, 158, 255, 0.35),
+    rgba(64, 158, 255, 0.12)
+  );
+  --shadow-accent: 0 4px 10px -2px rgba(64, 158, 255, 0.4);
+
+  --color-page-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-border: #e6e8eb;
+  --color-text-primary: #303133;
+  --color-text-secondary: #606266;
+  --color-text-muted: #909399;
+
+  --shadow-header: 0 1px 4px rgba(0, 21, 41, 0.08);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 21, 41, 0.04);
+  --radius-card: 10px;
+  --transition-base: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  color: #303133;
+  background-color: #f5f7fa;
+}
+
+/* 清除标题默认边距 */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+/* 清除列表默认样式 */
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 链接 */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 图片 */
+img {
+  max-width: 100%;
+}

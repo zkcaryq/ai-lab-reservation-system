@@ -1,0 +1,23 @@
+# Python backend
+backend/.venv/
+backend/__pycache__/
+backend/**/*.py[cod]
+backend/.ruff_cache/
+backend/.pytest_cache/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/logs/
+
+# Vue frontend
+frontend/**/node_modules/
+frontend/**/dist/
+frontend/**/.env
+frontend/**/.env.*
+
+# IDE and OS files
+.idea/
+.vscode/
+**/.DS_Store
+**/Thumbs.db
+**/.workbuddy/

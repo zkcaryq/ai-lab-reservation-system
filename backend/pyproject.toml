@@ -1,0 +1,54 @@
+[project]
+name = "fastapi-backend"
+version = "0.1.0"
+description = "AI 智能实验室预约系统 FastAPI 后端"
+readme = "README.md"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+    "alembic>=1.20,<2",
+    "fastapi>=0.141.1,<1",
+    "pydantic-settings>=2.10,<3",
+    "psycopg[binary]>=3.3.6,<4",
+    "sqlalchemy[asyncio]>=2.1.1,<3",
+    "uvicorn[standard]>=0.53,<1",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6,<1",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# 模板里就这几个目录；不要把缓存目录与虚拟环境、生成的迁移目录也算进去。
+extend-exclude = [
+    ".venv",
+    "alembic/versions",
+]
+
+[tool.ruff.lint]
+# 最小集：明显错误 + import 排序 + 现代写法。
+# 不开太宽的规则集，避免一次刷出大量与功能无关的修改。
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear（基础常见 bug）
+    "SIM",  # flake8-simplify（保守的几个规则）
+]
+ignore = [
+    "E501",  # 行长交给 formatter；没必要在 lint 里再报一遍
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
