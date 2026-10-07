@@ -29,6 +29,19 @@ class Settings(BaseSettings):
     PORT: int = Field(default=8000, ge=1, le=65535)
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
+    # 浏览器只允许这些前端“源”跨域访问后端。
+    # 源由“协议 + 主机 + 端口”组成，末尾不要填写路径或斜杠。
+    # 在 .env 中覆盖时必须使用 JSON 数组，例如：
+    # CORS_ORIGINS=["http://localhost:5173","http://192.168.1.10:5173"]
+    CORS_ORIGINS: tuple[str, ...] = (
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    )
+
+    # 当前项目把 JWT 放在 Authorization 请求头中，并不依赖跨站 Cookie，
+    # 因此默认关闭凭据模式。以后改成 HttpOnly Cookie 登录时再明确开启。
+    CORS_ALLOW_CREDENTIALS: bool = False
+
     DB_HOST: str = Field(min_length=1)
     DB_PORT: int = Field(default=5432, ge=1, le=65535)
     DB_NAME: str = Field(min_length=1)
@@ -99,7 +112,11 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def complete_migration_credentials(self) -> "Settings":
+    def validate_cross_field_settings(self) -> "Settings":
+        # 浏览器规范不允许“任意来源”与凭据模式组合使用，启动时直接拒绝错误配置。
+        if self.CORS_ALLOW_CREDENTIALS and "*" in self.CORS_ORIGINS:
+            raise ValueError('CORS_ALLOW_CREDENTIALS=true 时不能使用 CORS_ORIGINS=["*"]')
+
         has_user = self.MIGRATION_DB_USER is not None
         has_password = self.MIGRATION_DB_PASSWORD is not None
         if has_user != has_password:

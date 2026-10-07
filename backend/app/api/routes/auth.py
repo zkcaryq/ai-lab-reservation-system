@@ -7,8 +7,10 @@
 from fastapi import APIRouter
 
 from app.api.dependencies import DbSession
+from app.core.errors import BusinessException
 from app.core.security import create_access_token
-from app.schemas.auth import LoginRequest
+from app.schemas.apiresponse import ApiResponse
+from app.schemas.auth import LoginRequest, LoginResponse
 from app.schemas.user import UserResponse
 from app.services.auth import auth_login
 
@@ -19,47 +21,49 @@ router = APIRouter(prefix="/auth", tags=["登录权限验证"])
 
 
 @router.post("/login")
-async def login(data: LoginRequest, session: DbSession):
-    """接收登录请求，并把查询与密码比较交给Service处理。
+async def login(data: LoginRequest, session: DbSession) -> ApiResponse:
+    """验证账号与Argon2id密码哈希，成功后签发JWT。
 
-    FastAPI会完成两件事：
-    1. 把请求JSON解析成 ``LoginRequest``，然后传给data参数；
-    2. 根据 ``DbSession`` 中的依赖声明创建 ``AsyncSession``，传给session参数，
-       请求结束后再自动关闭Session。
-
-    最终接口地址是 ``POST /api/auth/login``。
+    FastAPI首先把请求JSON解析成LoginRequest，并通过DbSession创建AsyncSession。
+    本函数只编排HTTP流程：调用Service、判断业务结果、签发Token并构造响应。
     """
 
-    # 调用Service层。因为auth_login是异步函数，所以这里必须使用await。
-    # ``*`` 后面的参数必须按名称传入，因此要写username=和password=。
+    # Router不直接查询数据库，只把Session和请求字段交给Service。
+    # auth_login()是异步函数，内部会等待PostgreSQL查询，所以这里必须使用await。
     user = await auth_login(
         session,
         username=data.username,
         password=data.password,
     )
 
-    # Service用None表示“账号不存在或密码不同”。
-    # 本章按照原教程直接返回字典，暂时不加入统一响应和全局异常处理。
+    # Service用None同时表示“账号不存在”和“密码错误”，避免向攻击者泄露账号是否存在。
+    # 这是预期内业务失败，抛BusinessException交给统一处理器，不记录500堆栈。
     if user is None:
-        return {
-            "code": 400,
-            "message": "账号或密码错误",
-        }
+        raise BusinessException(
+            message="账号或密码错误",
+            status_code=400,
+        )
+
+    # 能走到这里说明账号密码正确；如果账号被禁用，使用403表示不允许继续访问。
     if user.status != 1:
-        return {
-            "code": 403,
-            "message": "账号已被禁用",
-        }
+        raise BusinessException(
+            message="账号已被禁用",
+            status_code=403,
+        )
+
+    # 只有账号、密码和状态都通过后才签发Token，禁用账号不会拿到有效JWT。
     token = create_access_token(user.id)
 
-    # 此时user是SQLAlchemy的User ORM对象。
-    # UserResponse配置了from_attributes=True，因此可以从user.id、user.username
-    # 等对象属性读取数据，并且只输出UserResponse中声明过的字段，不返回password。
-    return {
-        "code": 200,
-        "message": "登录成功",
-        "data": {
-            "token": token,
-            "user": UserResponse.model_validate(user),
-        },
-    }
+    # LoginResponse约束data内部必须有token和user两个字段。
+    # UserResponse.model_validate()从SQLAlchemy User对象读取同名属性，
+    # 而UserResponse没有password字段，所以响应不会输出密码哈希。
+    login_data = LoginResponse(
+        token=token,
+        user=UserResponse.model_validate(user),
+    )
+
+    # 登录成功属于普通成功并返回数据，因此真实HTTP状态码和JSON code都使用默认200。
+    return ApiResponse.success(
+        message="登录成功",
+        data=login_data,
+    )

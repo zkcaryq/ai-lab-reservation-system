@@ -11,6 +11,7 @@ import { Lock, User } from '@element-plus/icons-vue'
 import AuthBackground from '@/components/AuthBackground.vue'
 // 共享卡片外壳：logo + 标题 + 玻璃拟态样式（注册页同款）
 import AuthCard from '@/components/AuthCard.vue'
+import { loginApi } from '@/api/auth.js'
 
 const router = useRouter()
 
@@ -43,10 +44,8 @@ async function handleLogin() {
   if (loading.value) return
   loading.value = true
   try {
-    // ===== Mock：后端认证接口尚未接入，用 800ms 延时模拟网络请求 =====
-    // 真实接口接入后替换为：await api.post('/auth/login', form)，契约见任务说明
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    ElMessage.success('Mock 登录成功（后端认证未接入）')
+    const res = await loginApi(form)
+    ElMessage.success('登录成功')
     // 跳转管理端首页；router.push 会留下历史记录，浏览器返回可回到登录页
     router.push('/manager/home')
   } finally {

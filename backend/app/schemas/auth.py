@@ -1,5 +1,8 @@
 from pydantic import BaseModel
 
+# LoginResponse会把对外用户信息嵌套在登录成功的data中。
+from app.schemas.user import UserResponse
+
 
 class LoginRequest(BaseModel):
     """定义登录请求体的结构。
@@ -14,3 +17,13 @@ class LoginRequest(BaseModel):
 
     # 对应请求JSON中的password字段；本章不提前增加额外校验。
     password: str
+
+
+class LoginResponse(BaseModel):
+    """定义登录成功后 ``ApiResponse.data`` 内部的结构。"""
+
+    # 登录Router调用create_access_token(user.id)生成的JWT字符串。
+    token: str
+
+    # UserResponse只包含允许公开的用户字段，不包含User.password。
+    user: UserResponse

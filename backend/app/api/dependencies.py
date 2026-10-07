@@ -1,22 +1,37 @@
-"""依赖注入：定义路由里可直接声明的数据库会话类型。"""
-# ↑ 模块 docstring：这个文件很小，只定义一个"快捷类型"。
+"""路由层依赖注入：提供数据库Session和JWT当前用户。
+
+本文件只服务于FastAPI Router：
+- ``DbSession`` 自动创建并关闭每次请求独立的AsyncSession；
+- ``CurrentUser`` 提取Bearer Token、验证JWT并查询数据库中的有效用户。
+
+Service层不导入本文件，避免业务逻辑依赖FastAPI的Depends和HTTPException。
+"""
 
 # 从 typing 导入 Annotated（给类型附加额外元信息的工具）。
 from typing import Annotated
 
-# 从 FastAPI 导入 Depends（声明依赖的标记）。
+# Depends声明依赖关系；HTTPException负责中断请求；status提供可读的HTTP状态常量。
 from fastapi import Depends, HTTPException, status
+
+# OAuth2PasswordBearer负责从Authorization: Bearer <token>请求头中提取Token字符串。
 from fastapi.security import OAuth2PasswordBearer
+
+# PyJWT的所有无效Token异常都继承InvalidTokenError，可以统一转换成HTTP 401。
 from jwt.exceptions import InvalidTokenError
 
 # 从 SQLAlchemy 导入 AsyncSession（异步会话类型）。
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# decode_access_token验证JWT签名与过期时间，成功后返回Token载荷字典。
 from app.core.security import decode_access_token
 
 # 导入依赖注入函数（负责创建和关闭 Session）。
 from app.db.session import get_db_session
+
+# User既是get_current_user的返回类型，也是CurrentUser最终注入Router的对象类型。
 from app.models.user import User
+
+# get_user_by_id通过AsyncSession查询Token中用户ID对应的数据库用户。
 from app.services.auth import get_user_by_id
 
 # 路由只声明依赖；不让 Service 依赖 FastAPI 的 Depends 或 HTTPException。
@@ -27,20 +42,34 @@ DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 #   这样路由函数参数写成 `session: DbSession`，FastAPI 就会自动调用
 #   get_db_session 来创建并注入 Session，用完自动关闭。
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# ↑ 请求没有Bearer Token时，oauth2_scheme会直接产生HTTP 401；
+#   请求带Token时，它只负责提取字符串，不负责验证JWT签名。
+#   tokenUrl主要用于OpenAPI描述认证入口，不会替我们调用JSON登录接口。
 
 
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     session: DbSession,
 ) -> User:
-    """解析Bearer Token，并返回仍然存在且状态正常的用户。"""
+    """解析Bearer Token，并返回仍然存在且状态正常的User ORM对象。
+
+    FastAPI调用顺序：
+    1. oauth2_scheme从请求头提取Token并注入token；
+    2. DbSession创建AsyncSession并注入session；
+    3. 本函数验证Token、读取sub并查询用户；
+    4. 成功时把User返回给声明CurrentUser的Router；
+    5. 失败时抛HTTPException，由统一HTTP异常处理器输出401 JSON。
+    """
 
     try:
+        # 验证JWT签名、格式和exp过期时间；成功后得到sub/iat/exp等载荷。
         payload = decode_access_token(token)
     except InvalidTokenError:
+        # 签名错误、Token过期或格式损坏都统一视为登录失效。
+        # from None隐藏底层JWT异常上下文，避免响应或调试信息出现无关异常链。
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="登录已失效，请重新登录",
+            detail="登录已失效，请重新登录！OVo!",
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
 
@@ -51,19 +80,33 @@ async def get_current_user(
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="无效的登录凭证",
+            detail="无效的登录凭证！OVo!",
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
 
+    # JWT只证明Token曾由本服务签发，不能证明数据库中的用户现在仍存在且可用。
+    # 因此每次访问受保护接口时，都根据sub重新查询当前用户状态。
     user = await get_user_by_id(session, user_id=user_id)
-    if user is None or user.status != 1:
+
+    # 用户被删除或被禁用时，即使Token还没有过期，也不允许继续访问。
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户不存在或已被禁用",
+            detail="用户不存在！OVo!",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user.status != 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="用户已被禁用！OVo!",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # 成功时返回User，而不是ApiResponse：依赖负责“提供当前用户”，
+    # Router拿到User后再决定本接口要返回什么业务数据和成功响应。
     return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+# ↑ Router参数声明 ``current_user: CurrentUser`` 时，FastAPI会自动执行整条鉴权链；
+#   鉴权成功后current_user就是User对象，失败时Router函数不会开始执行。
