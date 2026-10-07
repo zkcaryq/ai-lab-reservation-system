@@ -1,4 +1,4 @@
-import request from '@/utils/request.js';
+import request from '@/utils/request';
 export function loginApi(data) {
     return request({
         url: "/api/auth/login",

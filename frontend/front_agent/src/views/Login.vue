@@ -11,7 +11,7 @@ import { Lock, User } from '@element-plus/icons-vue'
 import AuthBackground from '@/components/AuthBackground.vue'
 // 共享卡片外壳：logo + 标题 + 玻璃拟态样式（注册页同款）
 import AuthCard from '@/components/AuthCard.vue'
-import { loginApi } from '@/api/auth.js'
+import { loginApi } from '@/api/auth'
 
 const router = useRouter()
 

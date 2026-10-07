@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { getUserInfo, setToken, setUserInfo } from '@/utils/auth.js';
+import { getUserInfo, setToken, setUserInfo } from '@/utils/auth';
 const userInfo = ref(getUserInfo())
 export function useUser() {
     function saveLoginData(data){
