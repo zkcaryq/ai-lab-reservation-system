@@ -29,17 +29,18 @@ class _BodyTooLarge(Exception):
 
 
 class BodySizeLimitMiddleware:
-    # ↑ 请求体大小限制中间件类。
+    """同时校验声明长度和实际读取长度的 ASGI 请求体上限中间件。"""
 
     def __init__(self, app: ASGIApp, max_bytes: int) -> None:
-        # ↑ 初始化：接收内层应用和最大允许字节数。
+        """保存下游 ASGI 应用和允许的最大请求体字节数。"""
+
         self.app = app
         # ↑ 保存内层应用。
         self.max_bytes = max_bytes
         # ↑ 保存上限字节数。
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        # ↑ ASGI 入口：处理每个请求。
+        """在请求进入 Router 前执行长度校验并按需短路为 400/413。"""
 
         if scope["type"] != "http":
             # ↑ 非 HTTP 请求（lifespan/websocket）……
@@ -70,7 +71,8 @@ class BodySizeLimitMiddleware:
         # ↑ 记录"响应是否已经开始"（用于判断还能不能改状态码）。
 
         async def counting_receive() -> Message:
-            # ↑ 包装 receive：在接收请求体时累计字节数，超限就抛异常。
+            """代理 receive，累计分块请求体，防止客户端伪造 Content-Length。"""
+
             nonlocal seen
             # ↑ 声明要修改外层函数的 seen 变量（闭包）。
             message = await receive()
@@ -89,7 +91,8 @@ class BodySizeLimitMiddleware:
             # ↑ 没超限就正常返回消息。
 
         async def tracking_send(message: Message) -> None:
-            # ↑ 包装 send：跟踪响应是否已开始。
+            """代理 send，记录响应头是否已经发出。"""
+
             nonlocal started
             # ↑ 声明要修改外层的 started 变量。
             if message["type"] == "http.response.start":
@@ -113,7 +116,8 @@ class BodySizeLimitMiddleware:
             # ↑ 否则返回 413。
 
     async def _reject(self, scope: Scope, receive: Receive, send: Send) -> None:
-        # ↑ 返回 413 响应的辅助方法。
+        """返回统一结构的 HTTP 413 响应。"""
+
         await self._respond(413, "请求体超过允许大小", scope, receive, send)
         # ↑ 调用通用响应方法，状态码 413。
 

@@ -11,9 +11,14 @@ import { Lock, User } from '@element-plus/icons-vue'
 import AuthBackground from '@/components/AuthBackground.vue'
 // 共享卡片外壳：logo + 标题 + 玻璃拟态样式（注册页同款）
 import AuthCard from '@/components/AuthCard.vue'
+// 登录接口函数：url / method 在 api/auth.js 里集中封装，页面只传表单数据
 import { loginApi } from '@/api/auth'
+// 登录成功后要把 token 与用户信息写入本地：saveLoginData 由 useUser 提供
+import { useUser } from '@/utils/user'
 
 const router = useRouter()
+// 只解构 saveLoginData：本页不读 userInfo（顶栏显示是 Layout 的职责）
+const { saveLoginData } = useUser()
 
 // ===== 表单状态与校验 =====
 // 表单组件引用：用于手动调用 validate() 触发整体校验
@@ -44,10 +49,17 @@ async function handleLogin() {
   if (loading.value) return
   loading.value = true
   try {
+    // 发起登录请求：失败（非 2xx / 网络异常）时拦截器已弹提示并 reject，控制流直接进 catch
     const res = await loginApi(form)
-    ElMessage.success('登录成功')
-    // 跳转管理端首页；router.push 会留下历史记录，浏览器返回可回到登录页
-    router.push('/manager/home')
+    // HTTP 200 不代表业务成功：业务码也是 200 才保存登录态并跳转
+    if (res.code >= 200 && res.code < 300) {
+      saveLoginData(res.data) // 保存登录态（token、用户信息等）到本地
+      ElMessage.success(res.message || '登录成功!')
+      // 跳转管理端首页：push 留下历史记录，浏览器返回可回登录页
+      await router.push('/manager/home')
+    }
+  } catch {
+    // 请求层失败的提示已由 request.js 拦截器统一弹出；这里只接住异常防 Uncaught (in promise)，故意留空
   } finally {
     // 无论成功失败都恢复按钮状态（finally 保证执行）
     loading.value = false
@@ -85,9 +97,6 @@ async function handleLogin() {
           {{ loading ? '登录中...' : '登 录' }}
         </el-button>
       </el-form>
-
-      <!-- 明确标注 Mock 性质，避免误认为真实后端结果 -->
-      <p class="auth-tip">Mock 演示：任意用户名 + 6 位以上密码即可登录</p>
       <!-- 去注册：router-link 声明式导航，渲染成 <a> 但不刷新页面 -->
       <p class="auth-switch">还没有账号？<router-link to="/register">立即注册</router-link></p>
     </AuthCard>
@@ -95,13 +104,13 @@ async function handleLogin() {
 </template>
 
 <style scoped>
-/* 页面壳：fixed + inset:0 铺满视口（不用 100vh：视口尺寸变化后 vh 偶发不刷新），flex 负责卡片居中 */
+/* 页面壳：fixed + inset:0 铺满视口（不用 100vh：视口尺寸变化后 vh 偶发不刷新）
+   overflow-y:auto + 卡片 margin:auto：窗口较矮时可滚动，不会裁掉卡片顶部 */
 .auth-page {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  padding: 24px 16px;
+  overflow-y: auto;
 }
 </style>

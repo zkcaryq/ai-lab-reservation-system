@@ -1,0 +1,15 @@
+{
+  "tables": [
+    "alembic_version",
+    "equipments",
+    "labs",
+    "reservations",
+    "users"
+  ],
+  "labs": [
+    {
+      "id": 1,
+      "name": "人工智能实验室",
+      "location": "科技楼A区101",
+      "capacity": 40,
+      "open_time": 

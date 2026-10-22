@@ -52,8 +52,11 @@ session_factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=F
 
 
 async def get_db_session() -> AsyncIterator[AsyncSession]:
-    # ↑ 依赖注入函数：FastAPI 会在需要 Session 时调用它。
-    #   返回类型是 AsyncIterator（异步迭代器），配合 yield 使用。
+    """为一次 HTTP 请求提供独立 Session，并在请求结束后可靠关闭。
+
+    这里故意不自动提交：只有 Service 知道业务操作是否完整成功，因此 commit/rollback
+    必须留在 Service。依赖层只管理资源生命周期，避免请求间共享有状态 Session。
+    """
 
     # Session 有事务状态，不能跨请求或并发任务共享。async I/O 让数据库等待
     # 不阻塞其他请求，但不会自动让 SQL 变快，也不适合直接运行阻塞型计算。

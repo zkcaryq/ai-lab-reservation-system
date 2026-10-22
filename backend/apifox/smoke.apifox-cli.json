@@ -1,0 +1,63 @@
+{
+  "info": {
+    "_postman_id": "d47d8d1b-c51c-4d24-87a3-6ce94351ed08",
+    "name": "AI Lab Backend Smoke",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Live",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health/live",
+          "host": ["{{base_url}}"],
+          "path": ["health", "live"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('status=alive', () => pm.expect(pm.response.json().status).to.eql('alive'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Ready",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health/ready",
+          "host": ["{{base_url}}"],
+          "path": ["health", "ready"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('status=ready', () => pm.expect(pm.response.json().status).to.eql('ready'));"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    }
+  ]
+}

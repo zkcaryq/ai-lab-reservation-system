@@ -26,19 +26,35 @@ defineProps({
 </template>
 
 <style scoped>
-/* 玻璃拟态卡片：半透明 + 背景模糊 + 入场动画 */
+/* 认证卡片：与后台一致的白色大圆角 + 品牌渐变条 + 悬浮阴影 */
 .auth-card {
   position: relative;
   z-index: 1;
-  width: 400px;
-  padding: 40px 36px 28px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.55);
+  width: min(420px, calc(100vw - 32px));
+  padding: 44px 40px 30px;
+  margin: auto;
+  overflow: hidden;
   text-align: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 22px;
+  backdrop-filter: blur(20px) saturate(1.2);
+  box-shadow:
+    0 32px 80px -36px rgba(30, 41, 89, 0.45),
+    0 2px 6px rgba(30, 41, 89, 0.06);
   animation: card-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 卡片顶部品牌渐变条：和后台页面标题/主按钮同一视觉语言 */
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 36px;
+  left: 36px;
+  height: 3px;
+  background: var(--gradient-accent);
+  border-radius: 0 0 999px 999px;
 }
 
 @keyframes card-in {
@@ -52,97 +68,120 @@ defineProps({
   }
 }
 
+/* logo 做成 App 图标：白底圆角 + 细描边 + 品牌色阴影 */
 .auth-logo {
-  width: 56px;
-  height: 56px;
+  width: 68px;
+  height: 68px;
+  padding: 12px;
   object-fit: contain;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 16px 32px -18px rgba(79, 110, 247, 0.55);
 }
 
 .auth-title {
-  margin: 12px 0 6px;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #ffffff;
+  margin: 18px 0 8px;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--color-text-primary);
 }
 
 .auth-subtitle {
   margin-bottom: 28px;
   font-size: 13px;
-  letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 1.5px;
+  color: var(--color-text-muted);
 }
 
-/* 深色输入框：穿透 Element Plus 内部节点改背景/文字色 */
-/* 插槽内容在 DOM 上是 .auth-card 的后代，:deep() 同样能覆盖到 */
+/* 输入框：浅灰底 + 聚焦品牌环，和后台表单同一套质感 */
 .auth-card :deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  box-shadow: none;
+  background: rgba(247, 249, 253, 0.92);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--color-border) inset;
   transition: var(--transition-base);
 }
 
-.auth-card :deep(.el-input__wrapper:hover),
+.auth-card :deep(.el-input__wrapper:hover) {
+  background: #fff;
+  box-shadow: 0 0 0 1px #c6d2ef inset;
+}
+
 .auth-card :deep(.el-input__wrapper.is-focus) {
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 1px rgba(121, 187, 255, 0.6);
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--color-accent) inset,
+    0 0 0 4px rgba(79, 110, 247, 0.12);
 }
 
 .auth-card :deep(.el-input__inner) {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .auth-card :deep(.el-input__inner::placeholder),
 .auth-card :deep(.el-input__prefix) {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-muted);
 }
 
-/* 渐变主按钮 + 悬停微抬升（按钮在插槽里，同样靠 :deep 覆盖） */
+/* 渐变主按钮：与后台 primary 按钮同款，但更高更宽，符合登录页的主动作定位 */
 .auth-card :deep(.auth-button) {
   width: 100%;
+  height: 44px;
   margin-top: 8px;
-  border: none;
-  border-radius: 10px;
-  background: var(--gradient-accent);
-  box-shadow: var(--shadow-accent);
   font-size: 15px;
+  font-weight: 600;
   letter-spacing: 4px;
+  background: var(--gradient-accent);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 12px 26px -12px rgba(79, 110, 247, 0.65);
   transition: var(--transition-base);
 }
 
 .auth-card :deep(.auth-button:hover) {
+  filter: brightness(1.06);
   transform: translateY(-1px);
-  filter: brightness(1.08);
+  box-shadow: 0 16px 30px -12px rgba(79, 110, 247, 0.7);
 }
 
-/* 底部 Mock 说明文字（插槽内容） */
+/* 底部说明文字（插槽内容） */
 .auth-card :deep(.auth-tip) {
   margin-top: 16px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
 }
 
 /* 登录/注册互跳链接行（插槽内容） */
 .auth-card :deep(.auth-switch) {
-  margin-top: 10px;
+  margin-top: 14px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
 }
 
-/* 链接本身高亮 + 悬停加亮 */
+/* 链接本身高亮 + 悬停加深并出现下划线 */
 .auth-card :deep(.auth-switch a) {
-  color: #79bbff;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--color-accent);
 }
 
 .auth-card :deep(.auth-switch a:hover) {
-  color: #a0cfff;
+  color: #3f58c6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* 系统"减少动态效果"时关闭入场动画 */
 @media (prefers-reduced-motion: reduce) {
   .auth-card {
     animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 36px 24px 26px;
   }
 }
 </style>

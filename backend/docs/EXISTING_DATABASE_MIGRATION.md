@@ -41,7 +41,7 @@ pg_dump --host <数据库地址> --port 5432 --username <账号> --dbname <数�
 - 唯一约束、检查约束、外键显式声明；
 - `MetaData` 已经带 `DB_SCHEMA` 限定，不需要在每个 `__tablename__` 里加 schema。
 
-`app/models/user.py` 是当前项目的 ORM 例子。
+`../app/models/user_models.py` 是当前项目的 ORM 例子。
 
 ### 3. 验证 Schema 与 Model 完全一致
 

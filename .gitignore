@@ -21,3 +21,14 @@ frontend/**/.env.*
 **/.DS_Store
 **/Thumbs.db
 **/.workbuddy/
+
+# Local Codex/document tooling
+.codex-tmp/
+gen_resume.py
+
+# Local permission-recovery artifacts
+backend/.dsh-acl-recovery/
+
+# Runtime knowledge-base files. Source corpus is kept separately under
+# rag_source_documents/; these files are recreated by the ingestion worker.
+backend/storage/knowledge/

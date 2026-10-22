@@ -5,12 +5,12 @@
 
 调用关系速览（谁调用本模块的哪个函数）：
 
-- ``services/auth.py``
+- ``services/auth_router.py``
   - 登录时调用 ``verify_password()`` 核对密码；
   - 验证成功后调用 ``password_needs_rehash()`` 判断是否要升级旧哈希；
   - 需要升级时调用 ``hash_password()`` 用当前参数重新哈希；
   - 将来出现"创建用户/修改密码"功能时也会调用 ``hash_password()``。
-- ``api/routes/auth.py``
+- ``api/routes/auth_router.py``
   - 登录成功后调用 ``create_access_token()`` 签发Token。
 - ``api/dependencies.py``（鉴权依赖，教程06后续小节实现）
   - 调用 ``decode_access_token()`` 解析请求携带的Token。
@@ -141,7 +141,7 @@ def password_needs_rehash(password_hash: str) -> bool:
     #    才同时拥有明文和旧哈希，其他任何时机都无法完成升级。
     # check_needs_rehash()只做"字符串里的参数"与"当前配置"的对比，
     # 不访问数据库、不做任何重计算，因此开销可以忽略。
-    # 调用方（services/auth.py）发现返回True后，应使用本次登录的明文密码
+    # 调用方（services/auth_router.py）发现返回True后，应使用本次登录的明文密码
     # 调用hash_password()重新生成哈希并提交数据库。
     return password_hasher.check_needs_rehash(password_hash)
 

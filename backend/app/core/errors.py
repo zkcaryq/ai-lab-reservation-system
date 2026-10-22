@@ -46,6 +46,8 @@ class UnexpectedErrorMiddleware:
     """捕获未被明确异常处理器消费的未知服务器异常。"""
 
     def __init__(self, app: ASGIApp) -> None:
+        """保存下一层 ASGI 应用。"""
+
         # app代表中间件内侧的下一个ASGI应用。
         self.app = app
 
@@ -121,6 +123,8 @@ class BusinessException(Exception):
     """表示预期内、可以安全告诉客户端的业务失败。"""
 
     def __init__(self, message: str, status_code: int = 400) -> None:
+        """保存可公开提示与对应 HTTP 状态码。"""
+
         # message是可以返回客户端的业务提示，不能包含SQL、密码或内部堆栈。
         self.message = message
 

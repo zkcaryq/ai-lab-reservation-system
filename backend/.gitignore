@@ -18,3 +18,5 @@ build/
 outputs/
 work/
 .workbuddy/
+# 当前.gitignore就在backend目录内，因此直接忽略相对路径uploads/。
+uploads/

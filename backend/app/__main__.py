@@ -13,7 +13,7 @@ from app.core.settings import get_settings
 
 
 def main() -> None:
-    # ↑ 主函数：解析参数并启动服务器。
+    """解析开发启动参数，并用项目指定的事件循环启动 Uvicorn。"""
 
     parser = argparse.ArgumentParser(description="运行 FastAPI，读取 HOST/PORT 并兼容 Windows")
     # ↑ 创建命令行参数解析器，description 是帮助说明文字。

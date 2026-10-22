@@ -15,7 +15,7 @@ import sys
 
 
 def loop_factory() -> asyncio.AbstractEventLoop:
-    # ↑ 定义一个函数，返回值类型是"抽象事件循环"。uvicorn 启动时会调用它来拿事件循环。
+    """返回与当前平台和 psycopg 异步驱动兼容的事件循环。"""
 
     # psycopg 在 Windows 不支持 Proactor；工厂同时适用于 reload 和普通运行。
     # 不在 app import 时修改全局事件循环策略，避免影响宿主或测试框架。

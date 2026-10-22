@@ -32,6 +32,20 @@ Router -> Service -> AsyncSession -> ORM -> PostgreSQL
 - `get_db_session()` 为每个请求创建并关闭独立 AsyncSession。
 - 应用启动不自动建库、建 Schema、建表或执行迁移。
 
+Service 层按领域分包，避免所有 `*_services.py` 平铺在一层：
+
+```text
+app/services/
+├── auth/         登录、用户
+├── lab/          实验室、设备
+├── reservation/  预约
+├── knowledge/    知识库（文档/解析/入库/检索/Worker）
+└── ai/           对话、Agent、供应商配置、用量（含 providers/）
+```
+
+`ai` 与 `knowledge` 互相依赖，因此所有 `__init__.py` 必须保持为空（禁止 re-export），
+否则会形成循环导入。细则见 [app/services/README.md](app/services/README.md)。
+
 详细说明见 [架构说明](docs/ARCHITECTURE.md) 和 [开发运维命令](docs/OPERATIONS.md)。
 
 ## 静态验证

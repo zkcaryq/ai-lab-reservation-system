@@ -1,0 +1,26 @@
+[
+  {
+    "question": "人工智能实验室在哪里，开放时间是什么？",
+    "expected_source_contains": "人工智能实验室-综合介绍"
+  },
+  {
+    "question": "六轴机械臂使用前需要做哪些检查？",
+    "expected_source_contains": "六轴机械臂-操作手册"
+  },
+  {
+    "question": "实验室预约取消有哪些限制？",
+    "expected_source_contains": "实验室预约管理办法"
+  },
+  {
+    "question": "发生火情时应该怎样疏散？",
+    "expected_source_contains": "消防与用电安全"
+  },
+  {
+    "question": "设备发生故障后如何上报？",
+    "expected_source_contains": "设备故障"
+  },
+  {
+    "question": "3D打印机开始打印前要确认什么？",
+    "expected_source_contains": "3D打印机-操作手册"
+  }
+]

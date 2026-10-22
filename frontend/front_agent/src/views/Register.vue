@@ -11,6 +11,7 @@ import { Lock, User } from '@element-plus/icons-vue'
 import AuthBackground from '@/components/AuthBackground.vue'
 // 共享卡片外壳：logo + 标题 + 玻璃拟态样式（登录页同款）
 import AuthCard from '@/components/AuthCard.vue'
+import { registerApi } from '@/api/auth'
 
 const router = useRouter()
 
@@ -62,12 +63,16 @@ async function handleRegister() {
   if (loading.value) return
   loading.value = true
   try {
-    // ===== Mock：后端注册接口尚未接入，用 800ms 延时模拟网络请求 =====
-    // 真实接口接入后替换为：await api.post('/auth/register', form)，契约见任务说明
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    ElMessage.success('Mock 注册成功（后端未接入），请登录')
-    // 注册成功后回登录页：用 push 保留历史记录，用户可返回注册页修改
-    router.push('/login')
+    // 发起注册请求：失败（非 2xx / 网络异常）时拦截器已弹提示并 reject，控制流直接进 catch
+    const res = await registerApi(form)
+    // HTTP 200 不代表业务成功：业务码也是 200 才提示成功并跳回登录页（注册不保存登录态）
+    if (res.code >= 200 && res.code < 300) {
+      ElMessage.success(res.message || '注册成功!')
+      // 跳回登录页去登录：push 留下历史记录，浏览器返回可回注册页
+      await router.push('/login')
+    }
+  } catch {
+    // 请求层失败的提示已由 request.js 拦截器统一弹出；这里只接住异常防 Uncaught (in promise)，故意留空
   } finally {
     // 无论成功失败都恢复按钮状态（finally 保证执行）
     loading.value = false
@@ -116,8 +121,6 @@ async function handleRegister() {
         </el-button>
       </el-form>
 
-      <!-- 明确标注 Mock 性质，避免误认为真实后端结果 -->
-      <p class="auth-tip">Mock 演示：注册不会真正创建账号</p>
       <!-- 回登录：router-link 声明式导航，渲染成 <a> 但不刷新页面 -->
       <p class="auth-switch">已有账号？<router-link to="/login">返回登录</router-link></p>
     </AuthCard>
@@ -125,13 +128,12 @@ async function handleRegister() {
 </template>
 
 <style scoped>
-/* 页面壳：与登录页一致，fixed + inset:0 铺满视口，flex 负责卡片居中 */
+/* 页面壳：与登录页一致；overflow-y:auto + 卡片 margin:auto，矮窗口可滚动 */
 .auth-page {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  padding: 24px 16px;
+  overflow-y: auto;
 }
 </style>

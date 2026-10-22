@@ -1,0 +1,88 @@
+# AI 智能实验室预约系统 · 生产编排
+#   docker compose -f /opt/ai-lab/compose.yaml up -d --build
+#
+# 拓扑：
+#   web(nginx:80, 宿主机 80) --/api /uploads /health--> api(uvicorn:8000, 不对外)
+#   api --ai-lab-net--> 内网；同时接入已存在的 ai-postgres-net 复用 PostgreSQL。
+
+name: ai-lab
+
+services:
+  api:
+    build:
+      context: ./backend
+    image: ai-lab-api:1.0.0
+    container_name: ai-lab-api
+    restart: unless-stopped
+    env_file:
+      - ./api.env
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      # 头像等公开上传文件；数据库里存的 /uploads/xxx 依赖它。
+      - ./data/uploads:/app/uploads
+      # 知识库原始文档与解析产物。
+      - ./data/storage:/app/storage
+      # 按日期归档的应用日志，容器重建不丢。
+      - ./data/logs:/app/logs
+    networks:
+      ai-lab-net:
+        # 固定内网 IP：nginx 的 upstream 直接写这个地址，
+        # 这样重建 api 容器后 nginx 不会因为缓存旧 IP 而 502，也不依赖容器 DNS。
+        # 注意：改这里要同步改 web/nginx.conf 的 upstream（10.211.0.10:8000）。
+        ipv4_address: 10.211.0.10
+      ai-postgres-net: {}
+    # 容器名解析走 /etc/hosts，不再依赖 dockerd 内嵌 DNS。
+    # 机器 I/O 打满时 dockerd 响应 DNS 会超时，应用就会报
+    # "failed to resolve host 'ai-postgres': Temporary failure in name resolution"。
+    # 注意：ai-postgres 若被重建导致 IP 变化，这一行要同步更新（10.210.1.2）。
+    extra_hosts:
+      - "ai-postgres:10.210.1.2"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3).status == 200 else 1)"
+      # 给足超时，避免机器繁忙时探活误报 unhealthy。
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    image: nginx:alpine
+    container_name: ai-lab-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./web/dist:/usr/share/nginx/html:ro
+      - ./web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./web/proxy-common.inc:/etc/nginx/conf.d/proxy-common.inc:ro
+    depends_on:
+      - api
+    networks:
+      - ai-lab-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  ai-lab-net:
+    name: ai-lab-net
+    # 显式指定网段，才能给 api 分配固定 IP（避开 docker 默认地址池 10.210.0.0/16）。
+    ipam:
+      config:
+        - subnet: 10.211.0.0/24
+  # 复用已有的 PostgreSQL 容器网络（数据库不重建、数据不动）。
+  ai-postgres-net:
+    external: true
+    name: ai-postgres-net

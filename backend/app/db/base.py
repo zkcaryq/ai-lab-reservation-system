@@ -31,7 +31,7 @@ NAMING_CONVENTION = {
 
 
 class Base(DeclarativeBase):
-    # ↑ 定义 ORM 基类。所有 Model 都继承它，从而共享下面的 metadata 配置。
+    """所有 ORM 模型共享的声明式基类与 Schema/约束命名规则。"""
 
     # 所有 Model 继承同一 Base，自动继承用户指定的 Schema。
     # 不使用 create_all：结构变更必须有可审阅、可追踪的 Alembic 迁移。

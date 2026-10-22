@@ -24,15 +24,21 @@ class SafeFormatter(logging.Formatter):
     """输出可检索文本日志，并替换配置中已知的数据库密码和JWT密钥。"""
 
     def __init__(self, secrets: tuple[str, ...]) -> None:
+        """保存需要脱敏的非空密钥；空串不能参与 replace。"""
+
         super().__init__()
         self._secrets = tuple(secret for secret in secrets if secret)
 
     def _redact(self, value: str) -> str:
+        """用固定占位符替换当前配置中已知的敏感值。"""
+
         for secret in self._secrets:
             value = value.replace(secret, "[REDACTED]")
         return value
 
     def format(self, record: logging.LogRecord) -> str:
+        """把日志记录渲染成带 request_id 的键值文本。"""
+
         timestamp = datetime.fromtimestamp(record.created, UTC).isoformat()
         message = self._redact(record.getMessage())
         parts = [

@@ -29,10 +29,10 @@ from app.core.security import decode_access_token
 from app.db.session import get_db_session
 
 # User既是get_current_user的返回类型，也是CurrentUser最终注入Router的对象类型。
-from app.models.user import User
+from app.models.user_models import User
 
 # get_user_by_id通过AsyncSession查询Token中用户ID对应的数据库用户。
-from app.services.auth import get_user_by_id
+from app.services.auth.user_services import get_user_by_id
 
 # 路由只声明依赖；不让 Service 依赖 FastAPI 的 Depends 或 HTTPException。
 # ↑ 设计说明：依赖只在这一层声明，Service 层保持"不依赖 FastAPI"的纯净。
@@ -107,6 +107,33 @@ async def get_current_user(
     return user
 
 
+# CurrentUser不是一个新的User类，而是“User类型 + get_current_user依赖”的快捷写法。
+# Router声明current_user: CurrentUser时，FastAPI会先执行get_current_user()，
+# 鉴权成功后把返回的User对象注入参数；失败时Router函数根本不会开始执行。
 CurrentUser = Annotated[User, Depends(get_current_user)]
-# ↑ Router参数声明 ``current_user: CurrentUser`` 时，FastAPI会自动执行整条鉴权链；
-#   鉴权成功后current_user就是User对象，失败时Router函数不会开始执行。
+
+
+async def get_current_admin(current_user: CurrentUser) -> User:
+    """在普通登录鉴权成功后，继续检查当前用户是否为管理员。
+
+    依赖执行顺序是：
+    ``oauth2_scheme → get_current_user → get_current_admin → Router``。
+    因此本函数不需要再次解析JWT、查询数据库或检查status，只增加角色授权判断。
+    """
+
+    # 数据库中的角色不是admin，说明用户已经登录但没有访问管理员资源的权限。
+    if current_user.role != "admin":
+        # 403表示“身份已经确认，但没有权限”；这里不能使用401，401表示尚未通过认证。
+        # HTTPException会被项目的全局HTTP异常处理器转换成统一ApiResponse结构。
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权限访问！Ovo!",
+        )
+
+    # 角色检查通过后原样返回User，FastAPI会把它注入声明CurrentAdmin的Router参数。
+    return current_user
+
+
+# CurrentAdmin与CurrentUser的关系类似“在已有登录依赖外再包一层管理员检查”。
+# Router只需声明 ``_current_admin: CurrentAdmin``，不必同时再声明CurrentUser。
+CurrentAdmin = Annotated[User, Depends(get_current_admin)]

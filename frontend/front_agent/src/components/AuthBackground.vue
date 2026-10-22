@@ -1,5 +1,5 @@
 <script setup>
-// 认证页（登录/注册）共享背景：深色渐变 + 粒子连线 canvas + 两个模糊光斑
+// 认证页（登录/注册）共享背景：浅色品牌渐变 + 粒子连线 canvas + 两个模糊光斑
 // 抽成组件的原因：两个页面都要同一套背景，canvas 动画逻辑约百行，复制两份必然改漏一处
 import { onMounted, onUnmounted, ref } from 'vue'
 
@@ -115,18 +115,33 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 背景层：铺满父容器 + 深色渐变 + 裁掉光斑溢出 */
+/* 背景层：铺满父容器 + 浅色品牌渐变 + 裁掉光斑溢出 */
 .auth-bg {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(160deg, #0b1e33 0%, #001529 60%, #000c17 100%);
+  background:
+    radial-gradient(900px 620px at 10% 4%, rgba(79, 110, 247, 0.16), transparent 62%),
+    radial-gradient(820px 600px at 92% 8%, rgba(139, 92, 246, 0.14), transparent 60%),
+    radial-gradient(920px 700px at 50% 112%, rgba(6, 182, 212, 0.12), transparent 64%),
+    linear-gradient(160deg, #f9fbff 0%, #eef2ff 52%, #eaf4ff 100%);
 }
 
-/* 粒子画布铺满背景层 */
+/* 中央白色柔光：把卡片背后的粒子压淡，保证表单区域干净 */
+.auth-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side at 50% 48%, rgba(255, 255, 255, 0.78), transparent 72%);
+}
+
+/* 粒子画布铺满背景层；multiply 把浅蓝连线压成柔和的靛蓝色 */
 .particle-canvas {
   position: absolute;
   inset: 0;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
 }
 
 /* 氛围光斑：大半径模糊 + 缓慢漂移动画 */
@@ -135,21 +150,21 @@ onUnmounted(() => {
   width: 480px;
   height: 480px;
   border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.35;
+  filter: blur(100px);
+  opacity: 0.5;
   animation: blob-drift 14s ease-in-out infinite alternate;
 }
 
 .blob-1 {
   top: -120px;
   left: -100px;
-  background: #1f5ea8;
+  background: #c7d2fe;
 }
 
 .blob-2 {
   right: -140px;
   bottom: -160px;
-  background: #0e3a66;
+  background: #bae6fd;
   animation-delay: -7s;
 }
 

@@ -46,13 +46,15 @@ def current_request_id() -> str:
 
 
 def set_request_id(value: str) -> None:
-    # ↑ 设置当前请求 ID 的函数。
+    """设置当前异步上下文的请求 ID。"""
+
     _request_id_var.set(value)
     # ↑ 把传入的值写进 ContextVar。
 
 
 def reset_request_id(token: contextvars.Token[str]) -> None:
-    # ↑ 恢复请求 ID 的函数。参数 token 是 set() 时返回的"令牌"。
+    """用 ContextVar token 恢复进入请求前的上下文值。"""
+
     _request_id_var.reset(token)
     # ↑ 用令牌把 ContextVar 恢复到 set 之前的值（请求结束后清理用）。
 
@@ -70,13 +72,13 @@ class RequestIdMiddleware:
     # ↑ 类 docstring：说明它要么生成新 ID、要么透传客户端给的合法 ID。
 
     def __init__(self, app: ASGIApp) -> None:
-        # ↑ 初始化：ASGI 中间件的固定写法，接收"下一个要调用的应用"。
+        """保存下一层 ASGI 应用。"""
+
         self.app = app
         # ↑ 保存内层应用（可能是一层中间件，也可能是最终的路由）。
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        # ↑ 让这个类的实例可以像函数一样被调用（ASGI 中间件的核心协议）。
-        #   scope：请求信息；receive：收请求体；send：发响应。
+        """确定一次请求的权威 ID，并在结束后清理上下文。"""
 
         if scope["type"] != "http":
             # ↑ 如果不是 HTTP 请求（比如是 lifespan 启动事件或 websocket）……
@@ -116,7 +118,8 @@ def _patch_response(send: Send) -> Send:
     # ↑ docstring：说明为什么是"强制覆盖"而不是"没有才写"。
 
     async def send_wrapper(message: Message) -> None:
-        # ↑ 定义包装后的 send 函数（闭包），替换原 send。
+        """发送响应前覆盖 X-Request-ID 响应头。"""
+
         if message["type"] == "http.response.start":
             # ↑ 只有当消息是"响应开始"（此时才能写响应头）时才处理。
             rid = _request_id_var.get().encode("latin-1")
@@ -140,7 +143,7 @@ def _patch_response(send: Send) -> Send:
 
 
 def _header(headers, wanted: bytes) -> str:
-    # ↑ 辅助函数：从请求头列表里找指定名称的值，返回字符串；找不到返回空串。
+    """按不区分大小写的字节名称读取一个 ASGI 请求头。"""
 
     if not headers:
         # ↑ 如果请求头列表为空……
